@@ -1,16 +1,24 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify
 import joblib
-import os
 import pandas as pd
+import logging
 
-
+# Initialize the Flask app
 app = Flask(__name__)
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Ensure the model path is correct
 model_path = '/workspace/economy-guru/logistic_model.pkl'  # Adjust the path if necessary
 
 # Load the model
-model = joblib.load(model_path)
+try:
+    model = joblib.load(model_path)
+    logger.info("Model loaded successfully.")
+except Exception as e:
+    logger.error(f"Error loading model: {e}")
 
 @app.route('/')
 def home():
@@ -25,16 +33,22 @@ def predict():
         'V20', 'V21', 'V22', 'V23', 'V24', 'V25', 'V26', 'V27', 'V28', 
         'Amount'
     ]
+    
     try:
+        # Check if all required features are present
         features = {feature: [data[feature]] for feature in required_features}
     except KeyError as e:
+        logger.error(f"Missing feature: {e}")
         return jsonify({'error': f'Missing feature: {str(e)}'}), 400
-    
+
     df_features = pd.DataFrame(features)
-    prediction = model.predict(df_features)
+    try:
+        prediction = model.predict(df_features)
+    except Exception as e:
+        logger.error(f"Error during prediction: {e}")
+        return jsonify({'error': f'Error during prediction: {str(e)}'}), 500
+    
     return jsonify({'prediction': int(prediction[0])})
-
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
