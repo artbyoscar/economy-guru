@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify, render_template
 import joblib
 import os
+import pandas as pd
+
 
 app = Flask(__name__)
 
@@ -17,15 +19,22 @@ def home():
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.json
-    features = [
-        data['V1'], data['V2'], data['V3'], data['V4'], data['V5'], data['V6'], data['V7'], data['V8'], 
-        data['V9'], data['V10'], data['V11'], data['V12'], data['V13'], data['V14'], data['V15'], data['V16'], 
-        data['V17'], data['V18'], data['V19'], data['V20'], data['V21'], data['V22'], data['V23'], data['V24'], 
-        data['V25'], data['V26'], data['V27'], data['V28'], data['Amount']
+    required_features = [
+        'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10', 
+        'V11', 'V12', 'V13', 'V14', 'V15', 'V16', 'V17', 'V18', 'V19', 
+        'V20', 'V21', 'V22', 'V23', 'V24', 'V25', 'V26', 'V27', 'V28', 
+        'Amount'
     ]
-
-    prediction = model.predict([features])
+    try:
+        features = {feature: [data[feature]] for feature in required_features}
+    except KeyError as e:
+        return jsonify({'error': f'Missing feature: {str(e)}'}), 400
+    
+    df_features = pd.DataFrame(features)
+    prediction = model.predict(df_features)
     return jsonify({'prediction': int(prediction[0])})
+
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
